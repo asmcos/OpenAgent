@@ -1,0 +1,17 @@
+{
+  "name": "@openagent/app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenAgent REPL 应用：基于 core 库，动态注册 tools",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@openagent/core": "file:../core",
+    "@ai-sdk/openai-compatible": "^0.0.14",
+    "dotenv": "^16.4.5"
+  }
+}
