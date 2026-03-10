@@ -6,3 +6,4 @@ export { createProvider, registerProvider, PROVIDERS } from './provider.js';
 export { ToolRegistry } from './registry.js';
 export { createAgent } from './agent.js';
 export { loadConfigFile, loadConfig, getProviderConfig, getFirstProviderKey, getEnvPrefix } from './config.js';
+export { runTask } from './taskRunner.js';
