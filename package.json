@@ -1,0 +1,18 @@
+{
+  "name": "openagent-volcengine",
+  "version": "1.0.0",
+  "description": "Simple Node.js agent with Volcano Engine (火山引擎), supports chat and file search",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "chat": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^0.0.14",
+    "ai": "^4.0.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  }
+}
