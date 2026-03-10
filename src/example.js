@@ -21,6 +21,15 @@ import {
 } from '@openagent/core';
 import { defaultTools } from '@openagent/app/src/tools/index.js';
 
+// ---------- 默认 provider / 模型：二选一，注释一组、取消注释另一组即可切换 ----------
+// 使用 Ollama（本地或云）
+const DEFAULT_PROVIDER = 'ollama';
+const DEFAULT_MODEL = 'kimi-k2.5:cloud';
+
+// 使用火山引擎（改用火山时：注释上面两行，取消下面两行注释）
+// const DEFAULT_PROVIDER = 'volcengine';
+// const DEFAULT_MODEL = 'doubao-seed-2.0-lite';
+
 const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const SPIN_INTERVAL = 80;
 
@@ -37,7 +46,9 @@ function startSpinner(label = '思考中') {
 }
 
 const cwd = process.cwd();
-const providerKey = process.env.OPENAGENT_PROVIDER || getFirstProviderKey(cwd);
+// 优先级：环境变量 OPENAGENT_PROVIDER > 本文件默认（上面 DEFAULT_*）> config 第一个
+const providerKey =
+  process.env.OPENAGENT_PROVIDER || DEFAULT_PROVIDER || getFirstProviderKey(cwd);
 const cfg = providerKey ? getProviderConfig(providerKey, cwd) : null;
 
 const prefix = providerKey ? getEnvPrefix(providerKey) : undefined;
@@ -48,20 +59,24 @@ if (!providerKey || !cfg) {
   console.error('请添加 config.json 并配置至少一个 provider，或设置 OPENAGENT_PROVIDER');
   process.exit(1);
 }
-if (!apiKey && !cfg.providerConfig?.options?.apiKey) {
+const needsApiKey = providerKey !== 'ollama';
+if (needsApiKey && !apiKey && !cfg.providerConfig?.options?.apiKey) {
   console.error('请设置 .env 中对应 provider 的 API Key，或 config 中 options.apiKey');
   process.exit(1);
 }
 
-cfg.providerConfig.options.apiKey = apiKey || cfg.providerConfig.options.apiKey;
+cfg.providerConfig.options.apiKey =
+  apiKey || cfg.providerConfig.options.apiKey || (providerKey === 'ollama' ? 'ollama' : undefined);
 if (prefix && process.env[`${prefix}_BASE_URL`]) {
   cfg.providerConfig.options.baseURL = process.env[`${prefix}_BASE_URL`];
 }
 const provider = createProvider(cfg.providerConfig);
+// 优先级（模型）：provider 专属 env 覆盖 > OPENAGENT_MODEL > 本文件默认（仅对 DEFAULT_PROVIDER 生效）> config 第一个
 const modelId =
-  cfg.modelId ||
   (prefix ? process.env[`${prefix}_MODEL`] : null) ||
-  process.env.OPENAGENT_MODEL;
+  process.env.OPENAGENT_MODEL ||
+  (providerKey === DEFAULT_PROVIDER ? DEFAULT_MODEL : null) ||
+  cfg?.modelId;
 if (!modelId) {
   console.error('请在 config 的 models 中配置至少一个模型，或设置 OPENAGENT_MODEL');
   process.exit(1);

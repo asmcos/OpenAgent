@@ -48,6 +48,41 @@ npm run example        # 根目录单轮对话示例
 
 REPL 中可输入 `/tools` 查看已注册工具，`exit` 退出。
 
+## Ollama（本地）使用说明
+
+本项目支持通过 **Ollama** 作为 provider（OpenAI Compatible 接口）。
+
+在使用 Ollama 之前，需要先安装并启动 Ollama：
+
+- **安装**：参考 Ollama 官方安装说明（macOS / Linux / Windows）。安装完成后可在终端运行 `ollama -v` 验证。
+- **启动服务**：确保本地服务在运行（通常是 `ollama serve`），并且 OpenAI 兼容接口可用（默认 `http://localhost:11434/v1`）。
+- **拉取模型**：例如 `ollama pull llama3.2`（以你的 config/model 名为准）。
+
+然后在项目根的 `config.json` 中添加 `ollama` 配置（示例）：
+
+```json
+{
+  "ollama": {
+    "name": "ollama",
+    "npm": "@ai-sdk/openai-compatible",
+    "options": {
+      "baseURL": "http://localhost:11434/v1"
+    },
+    "models": {
+      "llama3.2": { "name": "llama3.2" }
+    }
+  }
+}
+```
+
+运行时可通过环境变量选择 provider / 模型：
+
+```bash
+OPENAGENT_PROVIDER=ollama npm start
+# 或指定模型
+OPENAGENT_PROVIDER=ollama OLLAMA_MODEL=llama3.2 npm start
+```
+
 ## 配置
 
 - **Config 文件**：项目根放置 **`config.json`**（或 `openagent.config.json`），结构为 `{ <providerKey>: { name, options, models } }` 或 `{ providers: { <providerKey>: ... } }`。provider key 由用户自定（如 `ollama`、或其它名称）。环境变量会覆盖同名字段。

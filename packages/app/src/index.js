@@ -30,10 +30,12 @@ const cfg = providerKey
 const prefix = providerKey ? getEnvPrefix(providerKey) : undefined;
 const apiKeyFromEnv = prefix ? process.env[`${prefix}_API_KEY`] : process.env.OPENAGENT_API_KEY;
 const apiKey = apiKeyFromEnv || cfg?.providerConfig?.options?.apiKey;
+const needsApiKey = providerKey !== 'ollama';
 
 let provider, model;
-if (cfg && (apiKey || cfg.providerConfig?.options?.apiKey)) {
-  cfg.providerConfig.options.apiKey = apiKey || cfg.providerConfig.options.apiKey;
+if (cfg && (apiKey || cfg.providerConfig?.options?.apiKey || !needsApiKey)) {
+  cfg.providerConfig.options.apiKey =
+    apiKey || cfg.providerConfig.options.apiKey || (providerKey === 'ollama' ? 'ollama' : undefined);
   provider = createProvider(cfg.providerConfig);
   const modelId = cfg.modelId || (prefix ? process.env[`${prefix}_MODEL`] : null) || process.env.OPENAGENT_MODEL;
   if (!modelId) {
@@ -45,7 +47,9 @@ if (cfg && (apiKey || cfg.providerConfig?.options?.apiKey)) {
 
 if (!provider || !model) {
   console.error(
-    '请添加 config.json 并配置至少一个 provider，或设置 OPENAGENT_PROVIDER；API Key 通过 .env 或 config 的 options.apiKey 配置'
+    needsApiKey
+      ? '请添加 config.json 并配置至少一个 provider，或设置 OPENAGENT_PROVIDER；API Key 通过 .env 或 config 的 options.apiKey 配置'
+      : '请添加 config.json 并配置至少一个 provider，或设置 OPENAGENT_PROVIDER'
   );
   process.exit(1);
 }
