@@ -14,7 +14,7 @@ import {
   getFirstProviderKey,
   getEnvPrefix,
 } from '@openagent/core';
-import { fileTools } from './tools/files.js';
+import { defaultTools } from './tools/index.js';
 
 const cwd = process.cwd();
 const rootCwd = join(cwd, '..', '..');
@@ -51,13 +51,19 @@ if (!provider || !model) {
 }
 
 const registry = new ToolRegistry();
-registry.registerAll(fileTools);
+registry.registerAll(defaultTools);
 
-const systemPrompt = `你是一个有帮助的助手，可以帮用户对话或执行简单任务。
-你可以使用以下工具：
-- list_files: 列出某目录下的文件和子目录。
-- search_files: 在目录下按文件名关键词搜索。
-当用户想「查文件」「看看某目录有什么」「找包含某关键词的文件」时，请使用相应工具，然后根据结果用中文简洁回复。`;
+const systemPrompt = `你是一个有帮助的助手，可以帮用户对话或执行文件、搜索等任务。
+可用工具：
+- list_files: 列出目录下的文件和子目录（首次查看用）。
+- search_files: 按文件名关键词搜索。
+- read_file: 读取文件内容。
+- write_file: 写入或覆盖文件。
+- append_file: 向文件末尾追加内容。
+- delete_file: 删除文件或目录。
+- grep: 在文件中按内容搜索（支持正则）。
+- find: 按文件名模式查找（支持 * 通配，如 *.js）。
+按用户意图选用工具，用中文简洁回复。`;
 
 const agent = createAgent({
   model,

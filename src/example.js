@@ -19,7 +19,7 @@ import {
   getFirstProviderKey,
   getEnvPrefix,
 } from '@openagent/core';
-import { fileTools } from '@openagent/app/src/tools/files.js';
+import { defaultTools } from '@openagent/app/src/tools/index.js';
 
 const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const SPIN_INTERVAL = 80;
@@ -69,7 +69,7 @@ if (!modelId) {
 const model = provider.chatModel(modelId);
 
 const registry = new ToolRegistry();
-registry.registerAll(fileTools);
+registry.registerAll(defaultTools);
 registry.register(
   'echo',
   tool({
@@ -82,12 +82,9 @@ registry.register(
 const agent = createAgent({
   model,
   getTools: () => registry.getTools(),
-  systemPrompt: `你是一个有帮助的助手，可以帮用户对话或执行简单任务。
-你可以使用以下工具：
-- list_files: 列出某目录下的文件和子目录。
-- search_files: 在目录下按文件名关键词搜索。
-- echo: 回显用户传入的文本。
-当用户想「查文件」「看看某目录有什么」「找包含某关键词的文件」时，请使用 list_files 或 search_files，然后根据结果用中文简洁回复。`,
+  systemPrompt: `你是一个有帮助的助手，可以帮用户对话或执行文件、搜索等任务。
+可用工具：list_files（列目录）、search_files（按文件名搜）、read_file、write_file、append_file、delete_file、grep（按内容搜）、find（按文件名模式）、echo。
+按用户意图选用工具，用中文简洁回复。`,
   maxSteps: 5,
 });
 
