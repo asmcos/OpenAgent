@@ -1,17 +1,35 @@
 /**
  * 应用层注册 provider：仅当用户在 config.json 中配置对应 key 时才会用到
- * 可在此扩展更多 provider（如 ollama、openai 等）
+ * 使用 LangChain ChatOpenAI（OpenAI 兼容接口：火山、Ollama 等）
  */
 import { registerProvider } from '@openagent/core';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { ChatOpenAI } from '@langchain/openai';
 
 registerProvider('volcengine', (options) => {
   const { baseURL = 'https://ark.cn-beijing.volces.com/api/v3', apiKey, name = 'volcengine' } = options;
   if (!apiKey) throw new Error('volcengine 需要 options.apiKey');
-  return createOpenAICompatible({ name, baseURL, apiKey });
+  return {
+    chatModel(modelId) {
+      return new ChatOpenAI({
+        openAIApiKey: apiKey,
+        configuration: { baseURL },
+        model: modelId,
+        temperature: 0.7,
+      });
+    },
+  };
 });
 
 registerProvider('ollama', (options) => {
   const { baseURL = 'http://localhost:11434/v1', name = 'ollama' } = options;
-  return createOpenAICompatible({ name, baseURL, apiKey: 'ollama' });
+  return {
+    chatModel(modelId) {
+      return new ChatOpenAI({
+        openAIApiKey: 'ollama',
+        configuration: { baseURL },
+        model: modelId,
+        temperature: 0.7,
+      });
+    },
+  };
 });

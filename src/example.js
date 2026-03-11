@@ -9,7 +9,7 @@
 import 'dotenv/config';
 import '@openagent/app/src/providers/register.js';
 import { createInterface } from 'readline';
-import { tool } from 'ai';
+import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import {
   createProvider,
@@ -87,10 +87,11 @@ const registry = new ToolRegistry();
 registry.registerAll(defaultTools);
 registry.register(
   'echo',
-  tool({
+  new DynamicStructuredTool({
+    name: 'echo',
     description: '回显用户传入的文本，用于测试工具调用',
-    parameters: z.object({ message: z.string().describe('要回显的文本') }),
-    execute: async ({ message }) => ({ echoed: message }),
+    schema: z.object({ message: z.string().describe('要回显的文本') }),
+    func: async ({ message }) => JSON.stringify({ echoed: message }),
   })
 );
 

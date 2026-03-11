@@ -8,7 +8,7 @@ const PROVIDERS = {};
 /**
  * 注册 provider（应用或插件在启动时调用）
  * @param {string} name - config 中使用的 provider key
- * @param {(options: object) => { chatModel: (id: string) => import('ai').LanguageModelV1 }} factory - 接收 options，返回 provider（含 chatModel）
+ * @param {(options: object) => { chatModel: (id: string) => import('@langchain/core/language_models/chat_models').BaseChatModel }} factory - 接收 options，返回 provider（含 chatModel）
  */
 export function registerProvider(name, factory) {
   PROVIDERS[name] = factory;

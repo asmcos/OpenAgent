@@ -1,7 +1,7 @@
 /**
  * grep / find 类操作（OpenCode 风格）：按内容搜索、按文件名/模式查找
  */
-import { tool } from 'ai';
+import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, resolve } from 'path';
@@ -15,23 +15,23 @@ function resolvePath(relativePath) {
   return full;
 }
 
-/** 简单 glob：仅支持 * 表示任意字符 */
 function matchGlob(name, pattern) {
   if (!pattern.includes('*')) return name.includes(pattern);
   const re = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
   return re.test(name);
 }
 
-export const grepTool = tool({
+export const grepTool = new DynamicStructuredTool({
+  name: 'grep',
   description: '在文件中按内容搜索（类似 grep）。在指定目录下递归查找包含某段文本或正则的文件，并返回匹配行。',
-  parameters: z.object({
+  schema: z.object({
     dir: z.string().describe('要搜索的根目录路径'),
     pattern: z.string().describe('要搜索的文本或正则表达式'),
-    filePattern: z.string().optional().describe('文件名过滤，如 *.js 只搜 js 文件'),
-    maxFiles: z.number().optional().default(50).describe('最多检查文件数'),
-    maxMatches: z.number().optional().default(100).describe('最多返回匹配行数'),
+    filePattern: z.string().optional().nullable().describe('文件名过滤，如 *.js 只搜 js 文件'),
+    maxFiles: z.number().optional().nullable().default(50).describe('最多检查文件数'),
+    maxMatches: z.number().optional().nullable().default(100).describe('最多返回匹配行数'),
   }),
-  execute: async ({ dir, pattern, filePattern, maxFiles, maxMatches }) => {
+  func: async ({ dir, pattern, filePattern, maxFiles, maxMatches }) => {
     const root = resolvePath(dir);
     const results = [];
     let filesChecked = 0;
@@ -65,22 +65,23 @@ export const grepTool = tool({
     };
     try {
       await scan(root, 0);
-      return { dir: root, pattern, matches: results, count: results.length };
+      return JSON.stringify({ dir: root, pattern, matches: results, count: results.length });
     } catch (err) {
-      return { error: err.message, dir: root };
+      return JSON.stringify({ error: err.message, dir: root });
     }
   },
 });
 
-export const findTool = tool({
+export const findTool = new DynamicStructuredTool({
+  name: 'find',
   description: '按文件名模式查找文件（类似 find）。在指定目录下递归查找文件名匹配 pattern 的文件。pattern 支持 * 通配，如 *.js、*test*。',
-  parameters: z.object({
+  schema: z.object({
     dir: z.string().describe('要搜索的根目录路径'),
     pattern: z.string().describe('文件名匹配模式，支持 * 通配'),
-    maxDepth: z.number().optional().default(5).describe('最大递归深度'),
-    maxResults: z.number().optional().default(100).describe('最多返回条数'),
+    maxDepth: z.number().optional().nullable().default(5).describe('最大递归深度'),
+    maxResults: z.number().optional().nullable().default(100).describe('最多返回条数'),
   }),
-  execute: async ({ dir, pattern, maxDepth, maxResults }) => {
+  func: async ({ dir, pattern, maxDepth, maxResults }) => {
     const root = resolvePath(dir);
     const results = [];
 
@@ -99,9 +100,9 @@ export const findTool = tool({
     };
     try {
       await scan(root, 0);
-      return { dir: root, pattern, files: results, count: results.length };
+      return JSON.stringify({ dir: root, pattern, files: results, count: results.length });
     } catch (err) {
-      return { error: err.message, dir: root };
+      return JSON.stringify({ error: err.message, dir: root });
     }
   },
 });

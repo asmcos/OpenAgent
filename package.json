@@ -6,11 +6,18 @@
   "description": "OpenAgent: library + app, dynamic tools & provider abstraction (OpenCode-style)",
   "scripts": {
     "start": "node src/example.js",
+    "langchain-example": "node langchain-example.js",
     "app": "npm run start -w @openagent/app",
     "dev": "npm run dev -w @openagent/app",
     "build": "npm run build -w @openagent/core"
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "@langchain/openai": "^0.3.0",
+    "zod": "^3.23.0"
+  }
 }

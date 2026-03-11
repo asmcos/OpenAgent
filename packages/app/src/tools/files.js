@@ -1,20 +1,21 @@
 /**
  * 内置文件类工具：列出目录、按关键词搜索（可被 app 动态注册）
  */
-import { tool } from 'ai';
+import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
 
 const cwd = () => process.cwd();
 
-export const listFiles = tool({
+export const listFiles = new DynamicStructuredTool({
+  name: 'list_files',
   description: '列出指定目录下的文件和子目录。用于查看某个路径里有什么文件。',
-  parameters: z.object({
+  schema: z.object({
     dir: z.string().describe('目录路径，相对当前工作目录或绝对路径'),
-    maxEntries: z.number().optional().default(20).describe('最多返回条目数'),
+    maxEntries: z.number().optional().nullable().default(20).describe('最多返回条目数'),
   }),
-  execute: async ({ dir, maxEntries }) => {
+  func: async ({ dir, maxEntries }) => {
     const fullPath = dir.startsWith('/') ? dir : join(cwd(), dir);
     try {
       const entries = await readdir(fullPath, { withFileTypes: true });
@@ -22,21 +23,22 @@ export const listFiles = tool({
         e.isDirectory() ? `[DIR]  ${e.name}` : `[FILE] ${e.name}`
       );
       const more = entries.length > maxEntries ? `... 共 ${entries.length} 项，仅显示前 ${maxEntries} 项` : '';
-      return { path: fullPath, entries: list, more };
+      return JSON.stringify({ path: fullPath, entries: list, more });
     } catch (err) {
-      return { error: err.message, path: fullPath };
+      return JSON.stringify({ error: err.message, path: fullPath });
     }
   },
 });
 
-export const searchFiles = tool({
+export const searchFiles = new DynamicStructuredTool({
+  name: 'search_files',
   description: '在指定目录下按文件名关键词搜索文件或目录（简单包含匹配）。',
-  parameters: z.object({
+  schema: z.object({
     dir: z.string().describe('要搜索的目录路径'),
     keyword: z.string().describe('文件名包含的关键词'),
-    maxEntries: z.number().optional().default(30).describe('最多返回条目数'),
+    maxEntries: z.number().optional().nullable().default(30).describe('最多返回条目数'),
   }),
-  execute: async ({ dir, keyword, maxEntries }) => {
+  func: async ({ dir, keyword, maxEntries }) => {
     const fullPath = dir.startsWith('/') ? dir : join(cwd(), dir);
     const lowerKeyword = keyword.toLowerCase();
     const results = [];
@@ -57,14 +59,13 @@ export const searchFiles = tool({
     };
     try {
       await collect(fullPath, 0);
-      return { path: fullPath, keyword, results, count: results.length };
+      return JSON.stringify({ path: fullPath, keyword, results, count: results.length });
     } catch (err) {
-      return { error: err.message, path: fullPath };
+      return JSON.stringify({ error: err.message, path: fullPath });
     }
   },
 });
 
-/** 默认文件工具集合，供 app 一次性注册 */
 export const fileTools = {
   list_files: listFiles,
   search_files: searchFiles,
