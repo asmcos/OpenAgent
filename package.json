@@ -1,11 +1,12 @@
 {
   "name": "openagent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "OpenAgent: library + app, dynamic tools & provider abstraction (OpenCode-style)",
   "scripts": {
     "start": "node src/example.js",
+    "task-example": "node src/task-example.js",
     "langchain-example": "node langchain-example.js",
     "app": "npm run start -w @openagent/app",
     "dev": "npm run dev -w @openagent/app",

@@ -13,6 +13,7 @@ import {
   getProviderConfig,
   getFirstProviderKey,
   getEnvPrefix,
+  trimHistory,
 } from '@openagent/core';
 import { defaultTools } from './tools/index.js';
 
@@ -99,7 +100,13 @@ function ask() {
 
     process.stdout.write('Agent: ');
     try {
-      const { text } = await agent.chat(input, history);
+      const trimmed = trimHistory(history, { maxMessages: 25, maxApproxChars: 12000 });
+      const chatOpts = {
+        onToolStart: (name) => process.stdout.write(`  → ${name}\n`),
+        onToolEnd: (name) => process.stdout.write(`  ← ${name}\n`),
+        toolRetries: 1,
+      };
+      const { text } = await agent.chat(input, trimmed, chatOpts);
       console.log(text || '（无回复）');
       history.push({ role: 'user', content: input });
       history.push({ role: 'assistant', content: text || '' });

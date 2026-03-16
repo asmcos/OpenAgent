@@ -6,7 +6,7 @@ import { registerProvider } from '@openagent/core';
 import { ChatOpenAI } from '@langchain/openai';
 
 registerProvider('volcengine', (options) => {
-  const { baseURL = 'https://ark.cn-beijing.volces.com/api/v3', apiKey, name = 'volcengine' } = options;
+  const { baseURL = 'https://ark.cn-beijing.volces.com/api/v3', apiKey, name = 'volcengine', temperature = 0.7, maxTokens } = options;
   if (!apiKey) throw new Error('volcengine 需要 options.apiKey');
   return {
     chatModel(modelId) {
@@ -14,21 +14,23 @@ registerProvider('volcengine', (options) => {
         openAIApiKey: apiKey,
         configuration: { baseURL },
         model: modelId,
-        temperature: 0.7,
+        temperature,
+        ...(maxTokens != null ? { maxTokens } : {}),
       });
     },
   };
 });
 
 registerProvider('ollama', (options) => {
-  const { baseURL = 'http://localhost:11434/v1', name = 'ollama' } = options;
+  const { baseURL = 'http://localhost:11434/v1', name = 'ollama', temperature = 0.7, maxTokens } = options;
   return {
     chatModel(modelId) {
       return new ChatOpenAI({
         openAIApiKey: 'ollama',
         configuration: { baseURL },
         model: modelId,
-        temperature: 0.7,
+        temperature,
+        ...(maxTokens != null ? { maxTokens } : {}),
       });
     },
   };
