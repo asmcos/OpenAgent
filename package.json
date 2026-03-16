@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/example.js",
     "task-example": "node src/task-example.js",
+    "skill-example": "node src/skill-example.js",
     "langchain-example": "node langchain-example.js",
     "app": "npm run start -w @openagent/app",
     "dev": "npm run dev -w @openagent/app",

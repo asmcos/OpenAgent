@@ -56,7 +56,12 @@ openagent/
 ├── docs/
 │   └── GAPS_AND_ROADMAP.md   # 与「更智能」智能体的差距与改进路线
 ├── src/
-│   └── example.js
+│   ├── example.js
+│   ├── task-example.js      # runTask 多轮示例
+│   ├── skill-example.js     # 在应用层加载 skills/*.md 的示例
+│   └── skills/              # 示例 skill 文档（.md），供 skill-example 加载
+│       ├── code-review.md
+│       └── refactor.md
 ├── packages/
 │   ├── core/
 │   │   └── src/
@@ -89,6 +94,11 @@ npm run example        # 根目录单轮对话示例
 ```
 
 REPL 中可输入 `/tools` 查看已注册工具，`exit` 退出。
+
+### Skill 使用（应用层自行加载）
+
+OpenAgent **不在 core 里内置 skill**，由引用方在例子或应用中按需加载（如读 `skills/*.md` 拼进 system prompt）。  
+示例：`npm run skill-example` 会从 `src/skills/` 读取所有 `.md` 并注入 system prompt，再启动交互；可输入 `/skills` 查看说明。参考 `src/skill-example.js` 与 `src/skills/*.md` 即可在自己的项目里接同样写法。
 
 ## Ollama（本地）使用说明
 
