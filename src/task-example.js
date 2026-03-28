@@ -6,6 +6,8 @@
  * 或：OPENAGENT_PROVIDER=volcengine npm run task-example 等覆盖。
  *
  * 要求：config.json 已配置对应 provider 和 models；非 ollama 时需 .env / 环境变量 API Key。
+ *
+ * 微信：已注册 weixin_send_text / weixin_get_updates（与 @tencent-weixin/openclaw-weixin 的 iLink API 一致，需 WEIXIN_ILINK_TOKEN 等）。
  */
 import 'dotenv/config';
 import '@openagent/app/src/providers/register.js';
@@ -20,6 +22,8 @@ import {
   runTask,
 } from '@openagent/core';
 import { defaultTools } from '@openagent/app/src/tools/index.js';
+import { openclawWeixinTools } from './openclawWeixinTools.js';
+import { ensureWeixinLogin } from './lib/weixinIlinkLogin.js';
 
 // 与 example.js 一致：默认 provider / 模型
 const DEFAULT_PROVIDER = 'ollama';
@@ -65,13 +69,20 @@ if (!modelId) {
 
 const model = provider.chatModel(modelId);
 
+await ensureWeixinLogin({
+  skipInteractive:
+    process.argv.includes('--no-weixin-login') || !process.stdin.isTTY,
+});
+
 const registry = new ToolRegistry();
 registry.registerAll(defaultTools);
+registry.registerAll(openclawWeixinTools);
 
 const agent = createAgent({
   model,
   getTools: () => registry.getTools(),
-  systemPrompt: `你是一个可以分步骤完成任务的助手。优先使用工具在当前项目里查找、阅读和总结文件。`,
+  systemPrompt: `你是一个可以分步骤完成任务的助手。优先使用工具在当前项目里查找、阅读和总结文件。
+若需通过微信 iLink 发消息，可使用 weixin_send_text（凭证见 npm 包 @tencent-weixin/openclaw-weixin 文档）。`,
   maxSteps: 5,
 });
 

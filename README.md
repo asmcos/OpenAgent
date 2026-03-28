@@ -46,6 +46,63 @@
 
 - **库（@openagent/core）**：Provider 注册与创建、Config 加载、ToolRegistry、createAgent（run/chat 含 onStep、工具回调、重试）、trimHistory、runTask 多轮。
 - **应用（@openagent/app）**：从 config 创建 Provider 与模型，注册默认文件/搜索类工具，REPL 中自动历史裁剪与工具调用可见、工具重试。
+- **微信 iLink Agent（可选）**：与 [@tencent-weixin/openclaw-weixin](https://www.npmjs.com/package/@tencent-weixin/openclaw-weixin) 同一套 HTTP 协议；扫码登录、入站 `getUpdates`、出站 `sendMessage`；示例中支持 **微信文本 → Agent → 自动发回微信**。
+
+## 微信 iLink Agent（ClawBot）
+
+在**不启动 OpenClaw Gateway** 的前提下，用本仓库脚本对接微信 **iLink Bot**（ClawBot 使用的协议）：终端扫码、长轮询收消息、LangChain Agent 推理后把回复发回微信。
+
+### 能力概览
+
+| 能力 | 说明 |
+|------|------|
+| **扫码登录** | 与插件一致：`get_bot_qrcode` → 终端展示二维码 → 轮询 `get_qrcode_status`，得到 `bot_token`；凭证默认写入 `~/.openagent/weixin-ilink.json`（可用 `OPENAGENT_STATE_DIR` 改根目录） |
+| **入站** | 后台长轮询 `POST /ilink/bot/getupdates`，维护 `get_updates_buf` 游标 |
+| **自动回复** | 解析入站文本 → 独立 `agentWeixin`（已去掉 `weixin_*` 工具，避免重复发送）→ `POST /ilink/bot/sendmessage` 回用户 |
+| **终端 REPL** | 同一进程内仍可用本地「你:」对话，使用完整工具集（含手动 `weixin_send_text` / `weixin_get_updates`） |
+| **LangChain 工具** | `src/openclawWeixinTools.js`：`weixin_send_text`、`weixin_get_updates`，供脚本或 Agent 显式调用 |
+
+### 依赖
+
+- 根目录已依赖 `qrcode-terminal`（终端画码）；开发依赖含 `@tencent-weixin/openclaw-weixin`（用于与官方包对齐 `channel_version` / `iLink-App-Id` 等请求头）。
+- Node 建议 **≥ 22**（与 `openclaw-weixin` 包声明一致）；较低版本若可运行，以本机实测为准。
+
+### 命令
+
+```bash
+npm run weixin-login              # 仅扫码登录并保存凭证
+npm run openclaw-weixin-example   # 扫码（若需要）+ 入站轮询 + 终端对话 + 微信自动回复（默认开启）
+```
+
+### 常用参数（`openclaw-weixin-example`）
+
+| 参数 | 含义 |
+|------|------|
+| `--no-weixin-login` | 不弹出扫码，只使用已有 `.env` / `weixin-ilink.json` |
+| `--no-weixin-inbound` | 不启动后台 `getUpdates` |
+| `--no-weixin-auto-reply` | 只打印入站日志，**不**经 Agent、**不**自动发回微信 |
+
+### 环境变量
+
+见 `.env.example` 中 `WEIXIN_*` / `OPENAGENT_STATE_DIR`。一般首次运行无需手写 `WEIXIN_ILINK_TOKEN`，扫码后会写入凭证文件；`WEIXIN_DEFAULT_CONTEXT_TOKEN` 在收到入站后会由示例自动更新，便于手动调试。
+
+### 与 OpenClaw 的关系
+
+- **相同点**：iLink HTTP 路径、扫码流程、收/发消息语义与官方微信插件一致。
+- **不同点**：本示例**不**接入 OpenClaw Gateway；适合把「微信当渠道」接进自建 Agent 实验。若已在用 OpenClaw，也可继续使用其 `openclaw channels login` 管理凭证，再按需把 token 配置到本示例。
+
+### 相关源码
+
+| 路径 | 作用 |
+|------|------|
+| `src/openclaw-weixin-example.js` | 主入口：登录、入站轮询、自动回复、本地 REPL |
+| `src/openclawWeixinTools.js` | LangChain 工具：`weixin_send_text`、`weixin_get_updates` |
+| `src/lib/openclawWeixinIlink.js` | iLink HTTP 客户端（`getupdates` / `sendmessage` 等） |
+| `src/lib/weixinIlinkLogin.js` | 扫码登录与凭证读写 |
+| `src/lib/weixinInboundPoller.js` | 入站轮询与 `onUserTextMessage` 回调 |
+| `src/weixin-ilink-login-cli.js` | 仅登录 CLI |
+
+`npm run task-example` 中已注册 `openclawWeixinTools`，可在多轮任务中配合模型使用微信工具（需自行配置 token）。
 
 ## 项目结构
 
@@ -57,8 +114,15 @@ openagent/
 │   └── GAPS_AND_ROADMAP.md   # 与「更智能」智能体的差距与改进路线
 ├── src/
 │   ├── example.js
-│   ├── task-example.js      # runTask 多轮示例
+│   ├── task-example.js      # runTask 多轮示例（含微信 iLink 工具）
 │   ├── skill-example.js     # 在应用层加载 skills/*.md 的示例
+│   ├── openclaw-weixin-example.js  # 微信 iLink：扫码、入站、Agent 自动回复、REPL
+│   ├── openclawWeixinTools.js        # LangChain：weixin_send_text / weixin_get_updates
+│   ├── weixin-ilink-login-cli.js     # 仅扫码登录
+│   ├── lib/
+│   │   ├── openclawWeixinIlink.js    # iLink HTTP
+│   │   ├── weixinIlinkLogin.js       # 扫码与凭证
+│   │   └── weixinInboundPoller.js    # getUpdates 轮询
 │   └── skills/              # 示例 skill 文档（.md），供 skill-example 加载
 │       ├── code-review.md
 │       └── refactor.md
@@ -91,6 +155,8 @@ npm install
 cp .env.example .env   # 按所用 provider 填写对应 API Key 等
 npm start              # 运行 REPL
 npm run example        # 根目录单轮对话示例
+npm run openclaw-weixin-example   # 微信 iLink Agent（见上文「微信 iLink Agent」）
+npm run weixin-login   # 仅微信扫码登录，写入 ~/.openagent/weixin-ilink.json
 ```
 
 REPL 中可输入 `/tools` 查看已注册工具，`exit` 退出。
