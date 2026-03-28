@@ -1,13 +1,10 @@
 /**
- * 微信 iLink 扫码登录（流程对齐 @tencent-weixin/openclaw-weixin/src/auth/login-qr.ts）
- * 凭证保存：~/.openagent/weixin-ilink.json（可用 OPENAGENT_STATE_DIR 覆盖根目录）
- *
- * context_token 仍只能来自入站 getupdates，无法由扫码自动生成。
+ * 微信 iLink 扫码登录（对齐 @tencent-weixin/openclaw-weixin/src/auth/login-qr.ts）
  */
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { apiGetFetch } from './openclawWeixinIlink.js';
+import { weixinIlinkApiGet } from './ilinkHttp.js';
 
 const FIXED_BASE_URL = 'https://ilinkai.weixin.qq.com';
 const DEFAULT_BOT_TYPE = '3';
@@ -21,15 +18,15 @@ export function resolveOpenagentStateDir() {
   return path.join(os.homedir(), '.openagent');
 }
 
-export function resolveCredentialsPath() {
+export function resolveWeixinIlinkCredentialsPath() {
   return path.join(resolveOpenagentStateDir(), 'weixin-ilink.json');
 }
 
 /**
  * @returns {{ token?: string, baseUrl?: string, userId?: string, savedAt?: string } | null}
  */
-export function readCredentialsFile() {
-  const fp = resolveCredentialsPath();
+export function readWeixinIlinkCredentials() {
+  const fp = resolveWeixinIlinkCredentialsPath();
   try {
     if (!fs.existsSync(fp)) return null;
     const raw = fs.readFileSync(fp, 'utf-8');
@@ -41,10 +38,10 @@ export function readCredentialsFile() {
   return null;
 }
 
-export function writeCredentialsFile(data) {
+export function writeWeixinIlinkCredentials(data) {
   const dir = resolveOpenagentStateDir();
   fs.mkdirSync(dir, { recursive: true });
-  const fp = resolveCredentialsPath();
+  const fp = resolveWeixinIlinkCredentialsPath();
   const payload = {
     ...data,
     savedAt: new Date().toISOString(),
@@ -54,10 +51,10 @@ export function writeCredentialsFile(data) {
 }
 
 /**
- * 将已保存凭证写入 process.env，供 WEIXIN_* 工具读取
+ * 将已保存凭证写入 process.env
  */
-export function applyCredentialsToEnv() {
-  const saved = readCredentialsFile();
+export function applyWeixinIlinkCredentialsToEnv() {
+  const saved = readWeixinIlinkCredentials();
   if (!saved?.token) return false;
   if (!process.env.WEIXIN_ILINK_TOKEN?.trim()) {
     process.env.WEIXIN_ILINK_TOKEN = saved.token;
@@ -74,7 +71,7 @@ export function applyCredentialsToEnv() {
 }
 
 async function fetchBotQrCode(apiBaseUrl, botType) {
-  const raw = await apiGetFetch({
+  const raw = await weixinIlinkApiGet({
     baseUrl: apiBaseUrl,
     endpoint: `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(botType)}`,
     timeoutMs: GET_QRCODE_TIMEOUT_MS,
@@ -85,7 +82,7 @@ async function fetchBotQrCode(apiBaseUrl, botType) {
 
 async function pollQrStatus(apiBaseUrl, qrcode) {
   try {
-    const raw = await apiGetFetch({
+    const raw = await weixinIlinkApiGet({
       baseUrl: apiBaseUrl,
       endpoint: `ilink/bot/get_qrcode_status?qrcode=${encodeURIComponent(qrcode)}`,
       timeoutMs: QR_POLL_TIMEOUT_MS,
@@ -116,10 +113,10 @@ async function printQrTerminal(qrcodeImgContent) {
 }
 
 /**
- * 交互式扫码登录并写入 ~/.openagent/weixin-ilink.json
+ * 交互式扫码登录并写入凭证文件
  * @param {{ timeoutMs?: number, botType?: string }} [opts]
  */
-export async function runInteractiveQrLogin(opts = {}) {
+export async function runWeixinIlinkQrLogin(opts = {}) {
   const timeoutMs = opts.timeoutMs ?? 480_000;
   const botType = opts.botType ?? DEFAULT_BOT_TYPE;
   const deadline = Date.now() + timeoutMs;
@@ -184,7 +181,7 @@ export async function runInteractiveQrLogin(opts = {}) {
           ? (status.baseurl.endsWith('/') ? status.baseurl : `${status.baseurl}/`)
           : `${FIXED_BASE_URL}/`;
         const userId = status.ilink_user_id || status.userId;
-        writeCredentialsFile({
+        writeWeixinIlinkCredentials({
           token,
           baseUrl,
           userId,
@@ -192,7 +189,7 @@ export async function runInteractiveQrLogin(opts = {}) {
         process.env.WEIXIN_ILINK_TOKEN = token;
         process.env.WEIXIN_ILINK_BASE_URL = baseUrl;
         if (userId) process.env.WEIXIN_DEFAULT_TO_USER_ID = userId;
-        console.log(`\n登录成功，凭证已保存: ${resolveCredentialsPath()}\n`);
+        console.log(`\n登录成功，凭证已保存: ${resolveWeixinIlinkCredentialsPath()}\n`);
         return { token, baseUrl, userId };
       }
       default:
@@ -206,16 +203,16 @@ export async function runInteractiveQrLogin(opts = {}) {
 }
 
 /**
- * 若环境变量无 token，则从文件加载；仍无且在 TTY 且未禁止，则走扫码。
+ * 环境变量有 token → 用；否则读文件；否则在 TTY 下扫码。
  * @param {{ skipInteractive?: boolean }} [opts]
- * @returns {{ source: 'env' | 'file' | 'qr' | 'none' }}
+ * @returns {Promise<{ source: 'env' | 'file' | 'qr' | 'none' }>}
  */
-export async function ensureWeixinLogin(opts = {}) {
+export async function ensureWeixinIlinkLogin(opts = {}) {
   if (process.env.WEIXIN_ILINK_TOKEN?.trim()) {
     return { source: 'env' };
   }
 
-  if (applyCredentialsToEnv() && process.env.WEIXIN_ILINK_TOKEN?.trim()) {
+  if (applyWeixinIlinkCredentialsToEnv() && process.env.WEIXIN_ILINK_TOKEN?.trim()) {
     return { source: 'file' };
   }
 
@@ -223,6 +220,19 @@ export async function ensureWeixinLogin(opts = {}) {
     return { source: 'none' };
   }
 
-  await runInteractiveQrLogin({});
+  await runWeixinIlinkQrLogin({});
   return { source: 'qr' };
 }
+
+/** @deprecated 使用 runWeixinIlinkQrLogin */
+export const runInteractiveQrLogin = runWeixinIlinkQrLogin;
+/** @deprecated 使用 ensureWeixinIlinkLogin */
+export const ensureWeixinLogin = ensureWeixinIlinkLogin;
+/** @deprecated 使用 applyWeixinIlinkCredentialsToEnv */
+export const applyCredentialsToEnv = applyWeixinIlinkCredentialsToEnv;
+/** @deprecated 使用 readWeixinIlinkCredentials */
+export const readCredentialsFile = readWeixinIlinkCredentials;
+/** @deprecated 使用 writeWeixinIlinkCredentials */
+export const writeCredentialsFile = writeWeixinIlinkCredentials;
+/** @deprecated 使用 resolveWeixinIlinkCredentialsPath */
+export const resolveCredentialsPath = resolveWeixinIlinkCredentialsPath;

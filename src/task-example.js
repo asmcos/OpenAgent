@@ -23,7 +23,7 @@ import {
 } from '@openagent/core';
 import { defaultTools } from '@openagent/app/src/tools/index.js';
 import { openclawWeixinTools } from './openclawWeixinTools.js';
-import { ensureWeixinLogin } from './lib/weixinIlinkLogin.js';
+import { ensureWeixinIlinkLogin } from '@openagent/core';
 
 // 与 example.js 一致：默认 provider / 模型
 const DEFAULT_PROVIDER = 'ollama';
@@ -69,7 +69,7 @@ if (!modelId) {
 
 const model = provider.chatModel(modelId);
 
-await ensureWeixinLogin({
+await ensureWeixinIlinkLogin({
   skipInteractive:
     process.argv.includes('--no-weixin-login') || !process.stdin.isTTY,
 });

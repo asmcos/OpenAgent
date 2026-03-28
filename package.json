@@ -10,7 +10,8 @@
     "skill-example": "node src/skill-example.js",
     "langchain-example": "node langchain-example.js",
     "openclaw-weixin-example": "node src/openclaw-weixin-example.js",
-    "weixin-login": "node src/weixin-ilink-login-cli.js",
+    "weixin-login": "node --import=dotenv/config --input-type=module -e \"import { runWeixinIlinkQrLogin } from '@openagent/core'; await runWeixinIlinkQrLogin({});\"",
+    "example:weixin-core": "node examples/weixin-ilink-core.mjs",
     "app": "npm run start -w @openagent/app",
     "dev": "npm run dev -w @openagent/app",
     "build": "npm run build -w @openagent/core"
@@ -18,9 +19,6 @@
   "workspaces": [
     "packages/*"
   ],
-  "dependencies": {
-    "qrcode-terminal": "^0.12.0"
-  },
   "devDependencies": {
     "@langchain/core": "^0.3.0",
     "@langchain/langgraph": "^0.2.0",

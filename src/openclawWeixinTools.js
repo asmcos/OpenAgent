@@ -6,12 +6,7 @@
  */
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
-import {
-  sendTextMessage,
-  getUpdates,
-  defaultBaseUrl,
-  defaultToken,
-} from './lib/openclawWeixinIlink.js';
+import { sendTextMessage, getUpdates, defaultBaseUrl, defaultToken } from '@openagent/core';
 
 const weixinSendText = new DynamicStructuredTool({
   name: 'weixin_send_text',

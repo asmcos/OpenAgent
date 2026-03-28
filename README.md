@@ -20,6 +20,22 @@
 | **工具重试** | `run(..., { toolRetries: N })`，工具执行失败时自动重试（默认 0） |
 | **历史裁剪** | `trimHistory(messages, { maxMessages, maxApproxChars })`，控制上下文长度，避免超长或遗忘 |
 | **多轮任务** | `runTask({ agent, goal, history, maxRounds, onStep, trimHistory, chatOptions })`，支持多轮「继续」执行 |
+| **微信 iLink** | 扫码登录、凭证文件、`getUpdates` / `sendTextMessage` 等与 [`@tencent-weixin/openclaw-weixin`](https://www.npmjs.com/package/@tencent-weixin/openclaw-weixin) 协议对齐；见 `docs/WEIXIN_ILINK_RESEARCH.md` |
+
+**微信 iLink（`import { … } from '@openagent/core'`）常用 API：**
+
+| 符号 | 说明 |
+|------|------|
+| `runWeixinIlinkQrLogin` | 终端扫码，写入 `~/.openagent/weixin-ilink.json` |
+| `ensureWeixinIlinkLogin` | 优先 `WEIXIN_ILINK_TOKEN` → 读文件 → TTY 下扫码 |
+| `readWeixinIlinkCredentials` / `writeWeixinIlinkCredentials` | 读写凭证 JSON |
+| `applyWeixinIlinkCredentialsToEnv` | 将文件中的 token/baseUrl/userId 写入 `process.env` |
+| `getUpdates` / `sendTextMessage` | 长轮询收消息、发文本（需 token 与 `context_token`） |
+| `defaultBaseUrl` / `defaultToken` | 默认网关与 token（读环境变量） |
+
+兼容旧名：`runInteractiveQrLogin`、`ensureWeixinLogin`、`applyCredentialsToEnv` 等仍可从 `@openagent/core` 导出。
+
+最小示例：`npm run example:weixin-core`（见 `examples/weixin-ilink-core.mjs`）。
 
 ### 应用（@openagent/app）
 
@@ -97,10 +113,9 @@ npm run openclaw-weixin-example   # 扫码（若需要）+ 入站轮询 + 终端
 |------|------|
 | `src/openclaw-weixin-example.js` | 主入口：登录、入站轮询、自动回复、本地 REPL |
 | `src/openclawWeixinTools.js` | LangChain 工具：`weixin_send_text`、`weixin_get_updates` |
-| `src/lib/openclawWeixinIlink.js` | iLink HTTP 客户端（`getupdates` / `sendmessage` 等） |
-| `src/lib/weixinIlinkLogin.js` | 扫码登录与凭证读写 |
-| `src/lib/weixinInboundPoller.js` | 入站轮询与 `onUserTextMessage` 回调 |
-| `src/weixin-ilink-login-cli.js` | 仅登录 CLI |
+| `packages/core/src/weixin/*` | **正式实现**：iLink HTTP、扫码登录、凭证（由 `@openagent/core` 导出） |
+
+`npm run weixin-login` 仅调用 core 的 `runWeixinIlinkQrLogin`（见 `package.json` 脚本）。
 
 `npm run task-example` 中已注册 `openclawWeixinTools`，可在多轮任务中配合模型使用微信工具（需自行配置 token）。
 
@@ -111,18 +126,16 @@ openagent/
 ├── package.json
 ├── config.json
 ├── docs/
-│   └── GAPS_AND_ROADMAP.md   # 与「更智能」智能体的差距与改进路线
+│   ├── GAPS_AND_ROADMAP.md   # 与「更智能」智能体的差距与改进路线
+│   └── WEIXIN_ILINK_RESEARCH.md  # 微信 iLink 协议调研与 core 实现说明
+├── examples/
+│   └── weixin-ilink-core.mjs    # 仅调用 @openagent/core 微信登录/凭证
 ├── src/
 │   ├── example.js
 │   ├── task-example.js      # runTask 多轮示例（含微信 iLink 工具）
 │   ├── skill-example.js     # 在应用层加载 skills/*.md 的示例
 │   ├── openclaw-weixin-example.js  # 微信 iLink：扫码、入站、Agent 自动回复、REPL
 │   ├── openclawWeixinTools.js        # LangChain：weixin_send_text / weixin_get_updates
-│   ├── weixin-ilink-login-cli.js     # 仅扫码登录
-│   ├── lib/
-│   │   ├── openclawWeixinIlink.js    # iLink HTTP
-│   │   ├── weixinIlinkLogin.js       # 扫码与凭证
-│   │   └── weixinInboundPoller.js    # getUpdates 轮询
 │   └── skills/              # 示例 skill 文档（.md），供 skill-example 加载
 │       ├── code-review.md
 │       └── refactor.md
@@ -135,7 +148,8 @@ openagent/
 │   │       ├── config.js
 │   │       ├── agent.js
 │   │       ├── historyTrim.js   # trimHistory
-│   │       └── taskRunner.js    # runTask 多轮
+│   │       ├── taskRunner.js    # runTask 多轮
+│   │       └── weixin/          # 微信 iLink（扫码、HTTP、getupdates/sendmessage）
 │   └── app/
 │       └── src/
 │           ├── index.js
@@ -157,6 +171,7 @@ npm start              # 运行 REPL
 npm run example        # 根目录单轮对话示例
 npm run openclaw-weixin-example   # 微信 iLink Agent（见上文「微信 iLink Agent」）
 npm run weixin-login   # 仅微信扫码登录，写入 ~/.openagent/weixin-ilink.json
+npm run example:weixin-core   # 最小示例：仅 @openagent/core 微信 API（见 examples/）
 ```
 
 REPL 中可输入 `/tools` 查看已注册工具，`exit` 退出。
